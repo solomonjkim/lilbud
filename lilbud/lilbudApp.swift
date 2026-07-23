@@ -1,17 +1,23 @@
-//
-//  lilbudApp.swift
-//  lilbud
-//
-//  Created by Solomon Kim on 7/23/26.
-//
-
 import SwiftUI
 
 @main
-struct lilbudApp: App {
+struct LilbudApp: App {
+    @State private var store = ChatStore()
+    @State private var models = ModelManager()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(store)
+                .environment(models)
+                .frame(minWidth: 900, minHeight: 620)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Conversation") { store.createConversation() }
+                    .keyboardShortcut("n", modifiers: .command)
+            }
         }
     }
 }
