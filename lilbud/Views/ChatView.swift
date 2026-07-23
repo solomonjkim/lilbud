@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @Environment(ChatStore.self) private var store
     @Environment(ModelManager.self) private var models
+    @Environment(RuntimeManager.self) private var runtime
     let conversation: Conversation
     @State private var draft = ""
     @State private var showingCompaction = false
@@ -18,6 +19,14 @@ struct ChatView: View {
                 else { Button(models.downloading == conversation.tier ? "Setting up…" : "Download") { Task { await models.download(conversation.tier) } }.disabled(models.downloading != nil) }
             }.padding(.horizontal, 28).padding(.vertical, 16)
             Divider()
+            if models.downloading != nil || runtime.isInstalling || models.error != nil || runtime.error != nil {
+                SetupStatusCard(
+                    status: runtime.isInstalling ? runtime.status : models.status,
+                    error: models.error ?? runtime.error
+                )
+                .padding(.horizontal, 28).padding(.vertical, 12)
+                Divider()
+            }
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
@@ -33,6 +42,26 @@ struct ChatView: View {
         .sheet(isPresented: $showingCompaction) { CompactionSheet(conversation: conversation) { store.compact(conversation.id, style: $0) } }
     }
     private func send() { store.send(draft, in: conversation.id); draft = "" }
+}
+
+private struct SetupStatusCard: View {
+    let status: String
+    let error: String?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if error == nil { ProgressView().controlSize(.small) }
+            Image(systemName: error == nil ? "arrow.down.circle" : "exclamationmark.triangle.fill")
+                .foregroundStyle(error == nil ? .mint : .orange)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(error ?? status).font(.subheadline)
+                if error == nil { Text("Lilbud is setting up its private local runtime. You can keep the app open while this completes.").font(.caption).foregroundStyle(.secondary) }
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
 }
 
 private struct WelcomeView: View {
