@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "minimumAppVersion": "1.0.0",
+  "artifacts": [
+    {
+      "id": "pi-macos-arm64",
+      "version": "0.81.1",
+      "url": "https://github.com/earendil-works/pi/releases/download/v0.81.1/pi-darwin-arm64.tar.gz",
+      "sha256": "a24834019ec02ee5a475ff1c5a5e9f838974191ba6adc4348f6e6475a7c7667b",
+      "archive": "tar.gz"
+    },
+    {
+      "id": "ollama-macos-arm64",
+      "version": "0.32.3",
+      "url": "https://github.com/ollama/ollama/releases/download/v0.32.3/Ollama-darwin.zip",
+      "sha256": "3be39ebba6e7beee0e6498468dd391771db56e8fff84d77424fccc8bd94ccbfa",
+      "archive": "zip"
+    }
+  ],
+  "models": [
+    { "id": "qwen3.5:4b-mlx", "tier": "everyday", "downloadBytes": 4000000000 },
+    { "id": "qwen3.5:9b-mlx", "tier": "workhorse", "downloadBytes": 8900000000 }
+  ]
+}
