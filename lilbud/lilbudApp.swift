@@ -10,6 +10,7 @@ struct LilbudApp: App {
             ContentView()
                 .environment(store)
                 .environment(models)
+                .environment(RuntimeManager.shared)
                 .frame(minWidth: 900, minHeight: 620)
         }
         .windowStyle(.hiddenTitleBar)
