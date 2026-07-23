@@ -18,7 +18,10 @@ import Observation
     }
 
     func piExecutable() -> URL? { executable(named: "pi", below: root.appending(path: "Pi", directoryHint: .isDirectory)) }
-    func ollamaExecutable() -> URL? { executable(named: "ollama", below: root.appending(path: "Ollama", directoryHint: .isDirectory)) }
+    func ollamaExecutable() -> URL? {
+        let bundledCLI = root.appending(path: "Ollama/Ollama.app/Contents/Resources/ollama")
+        return fileManager.isExecutableFile(atPath: bundledCLI.path) ? bundledCLI : executable(named: "ollama", below: root.appending(path: "Ollama", directoryHint: .isDirectory))
+    }
     var isInstalled: Bool { piExecutable() != nil && ollamaExecutable() != nil }
 
     func installIfNeeded() async throws {
@@ -61,6 +64,10 @@ import Observation
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
         try? fileManager.removeItem(at: target)
         try fileManager.moveItem(at: staging, to: target)
+        // URLSession marks all files extracted from an internet archive as quarantined.
+        // The manifest hash is verified above and Ollama's app bundle is vendor signed;
+        // remove that inherited marker so macOS may launch its CLI and MLX libraries.
+        removeQuarantine(from: target)
     }
 
     private func executable(named name: String, below directory: URL) -> URL? {
@@ -76,6 +83,14 @@ import Observation
         let error = Pipe(); process.standardError = error
         try process.run(); process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw RuntimeError.commandFailed(String(decoding: error.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)) }
+    }
+
+    private func removeQuarantine(from url: URL) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
+        process.arguments = ["-r", "-d", "com.apple.quarantine", url.path]
+        try? process.run()
+        process.waitUntilExit()
     }
 }
 
