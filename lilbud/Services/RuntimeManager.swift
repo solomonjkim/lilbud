@@ -25,7 +25,8 @@ import Observation
     var isInstalled: Bool { piExecutable() != nil && ollamaExecutable() != nil }
 
     func installIfNeeded() async throws {
-        guard !isInstalled else { return }
+        // This also repairs a runtime downloaded by an earlier Lilbud version.
+        if isInstalled { removeQuarantine(from: root); return }
         guard !isInstalling else { throw RuntimeError.commandFailed("Lilbud setup is already in progress.") }
         isInstalling = true; error = nil
         defer { isInstalling = false; status = "" }
