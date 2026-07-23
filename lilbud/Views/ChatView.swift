@@ -15,7 +15,7 @@ struct ChatView: View {
                 Picker("Model tier", selection: Binding(get: { conversation.tier }, set: { store.updateTier($0, for: conversation.id) })) { ForEach(ModelTier.allCases) { Text($0.title).tag($0) } }
                     .pickerStyle(.segmented).frame(width: 220)
                 if models.isInstalled(conversation.tier) { Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.caption) }
-                else { Button(models.downloading == conversation.tier ? "Downloading…" : "Download") { Task { await models.download(conversation.tier) } }.disabled(models.downloading != nil) }
+                else { Button(models.downloading == conversation.tier ? "Setting up…" : "Download") { Task { await models.download(conversation.tier) } }.disabled(models.downloading != nil) }
             }.padding(.horizontal, 28).padding(.vertical, 16)
             Divider()
             ScrollViewReader { proxy in

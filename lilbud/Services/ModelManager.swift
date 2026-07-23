@@ -13,7 +13,11 @@ import Observation
     func download(_ tier: ModelTier) async {
         downloading = tier; error = nil
         defer { downloading = nil }
-        do { _ = try await runOllama(["pull", modelID(for: tier)]); await refresh() }
+        do {
+            try await RuntimeManager.shared.installIfNeeded()
+            _ = try await runOllama(["pull", modelID(for: tier)])
+            await refresh()
+        }
         catch let caught { self.error = "Couldn’t download \(tier.title): \(caught.localizedDescription)" }
     }
     func refresh() async {
@@ -21,7 +25,10 @@ import Observation
         installedModelIDs = Set(output.split(separator: "\n").dropFirst().compactMap { $0.split(whereSeparator: \.isWhitespace).first.map(String.init) })
     }
     private func runOllama(_ arguments: [String]) async throws -> String {
-        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/env"); process.arguments = ["ollama"] + arguments
+        try await RuntimeManager.shared.installIfNeeded()
+        guard let executable = RuntimeManager.shared.ollamaExecutable() else { throw RuntimeError.commandFailed("Ollama is not installed.") }
+        try OllamaServer.shared.ensureRunning(executable: executable)
+        let process = Process(); process.executableURL = executable; process.arguments = arguments
         let output = Pipe(); process.standardOutput = output; process.standardError = output
         try process.run(); let data = output.fileHandleForReading.readDataToEndOfFile(); process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw RuntimeError.commandFailed(String(decoding: data, as: UTF8.self)) }

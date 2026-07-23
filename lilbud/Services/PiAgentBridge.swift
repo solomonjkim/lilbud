@@ -9,9 +9,12 @@ protocol AgentBridge {
 
 @MainActor final class PiAgentBridge: AgentBridge {
     func send(messages: [ChatMessage], summary: ContextSummary?, tier: ModelTier) async throws -> String {
+        try await RuntimeManager.shared.installIfNeeded()
+        guard let executable = RuntimeManager.shared.piExecutable(), let ollama = RuntimeManager.shared.ollamaExecutable() else { throw RuntimeError.commandFailed("Lilbud's local runtime is not installed.") }
+        try OllamaServer.shared.ensureRunning(executable: ollama)
         let runtime = try PiRuntime.prepare()
         let prompt = Self.prompt(messages: messages, summary: summary)
-        let output = try runPi(runtime: runtime, tier: tier, prompt: prompt)
+        let output = try runPi(executable: executable, runtime: runtime, tier: tier, prompt: prompt)
         let text = Self.text(from: output)
         guard !text.isEmpty else { throw RuntimeError.commandFailed("Pi completed without a response.") }
         return text
@@ -20,9 +23,9 @@ protocol AgentBridge {
         let instruction = style == .detailed ? "Create a detailed working summary." : "Create a concise summary of key decisions, preferences, facts, and open work."
         return try await send(messages: messages + [ChatMessage(role: .user, content: instruction)], summary: previousSummary, tier: tier)
     }
-    private func runPi(runtime: PiRuntime, tier: ModelTier, prompt: String) throws -> String {
-        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["pi", "--mode", "rpc", "--no-session", "--no-builtin-tools", "--tools", "search_web", "--no-extensions", "--extension", runtime.extensionURL.path, "--provider", "lilbud-local", "--model", tier == .everyday ? "qwen3.5:4b-mlx" : "qwen3.5:9b-mlx", "--api-key", "local"]
+    private func runPi(executable: URL, runtime: PiRuntime, tier: ModelTier, prompt: String) throws -> String {
+        let process = Process(); process.executableURL = executable
+        process.arguments = ["--mode", "rpc", "--no-session", "--no-builtin-tools", "--tools", "search_web", "--no-extensions", "--extension", runtime.extensionURL.path, "--provider", "lilbud-local", "--model", tier == .everyday ? "qwen3.5:4b-mlx" : "qwen3.5:9b-mlx", "--api-key", "local"]
         process.environment = ProcessInfo.processInfo.environment.merging(["PI_CODING_AGENT_DIR": runtime.directory.path, "PI_OFFLINE": "1", "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0"]) { _, new in new }
         let input = Pipe(), output = Pipe(), error = Pipe(); process.standardInput = input; process.standardOutput = output; process.standardError = error
         try process.run()
